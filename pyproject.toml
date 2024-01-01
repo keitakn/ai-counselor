@@ -1,0 +1,37 @@
+[project]
+name = "ai-counselor"
+version = "0.1.0"
+description = ""
+authors = [
+    { name = "keitakn", email = "keita.koga.work@gmail.com" }
+]
+dependencies = [
+    "fastapi>=0.108.0",
+    "uvicorn>=0.25.0",
+    "flake8>=5.0.4",
+    "black>=23.12.1",
+    "pytest>=7.4.4",
+    "httpx>=0.26.0",
+]
+readme = "README.md"
+requires-python = ">= 3.12"
+
+[project.scripts]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ai_counselor"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
