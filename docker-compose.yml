@@ -4,6 +4,8 @@ services:
     build: .
     ports:
       - "5656:5000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - ./.flake8:/.flake8
       - ./Makefile:/Makefile
