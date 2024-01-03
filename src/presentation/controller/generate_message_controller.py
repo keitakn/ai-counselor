@@ -1,11 +1,13 @@
-import os
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator, Field
 from http import HTTPStatus
 from domain.unique_id import is_uuid_format, generate_unique_id
 from domain.message import is_message
+from domain.repository.generate_message_repository_interface import GenerateMessageDto
 from log.logger import AppLogger, ErrorLogExtra
-from openai import AsyncOpenAI
+from infrastructure.repository.openai.openai_generate_message_repository import (
+    OpenAiGenerateMessageRepository,
+)
 
 
 class GenerateMessageRequestBody(BaseModel):
@@ -64,18 +66,15 @@ class GenerateMessageController:
         response_headers = {"Ai-Counselor-Request-Id": unique_id}
 
         try:
-            client = AsyncOpenAI(
-                api_key=os.environ.get("OPENAI_API_KEY"),
+            repository = OpenAiGenerateMessageRepository()
+
+            generate_message_dto = GenerateMessageDto(
+                conversation_id=conversation_id,
+                message=self.request_body.message,
             )
 
-            chat_completion = await client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": self.request_body.message,
-                    }
-                ],
-                model="gpt-3.5-turbo",
+            generate_message_result = await repository.generate_message(
+                generate_message_dto
             )
 
             return JSONResponse(
@@ -83,7 +82,7 @@ class GenerateMessageController:
                 headers=response_headers,
                 content={
                     "conversation_id": conversation_id,
-                    "message": chat_completion.choices[0].message.content,
+                    "message": generate_message_result.get("message"),
                 },
             )
         except Exception as e:
