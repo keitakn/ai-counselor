@@ -1,7 +1,7 @@
 from typing import Protocol, TypedDict
 
 
-class GenerateMessageDto(TypedDict):
+class GenerateMessageRepositoryDto(TypedDict):
     conversation_id: str
     message: str
 
@@ -12,5 +12,7 @@ class GenerateMessageResult(TypedDict):
 
 
 class GenerateMessageRepositoryInterface(Protocol):
-    async def generate_message(self, dto: GenerateMessageDto) -> GenerateMessageResult:
+    async def generate_message(
+        self, dto: GenerateMessageRepositoryDto
+    ) -> GenerateMessageResult:
         ...

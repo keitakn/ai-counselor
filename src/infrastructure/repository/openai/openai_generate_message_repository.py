@@ -2,7 +2,7 @@ import os
 from openai import AsyncOpenAI
 from domain.repository.generate_message_repository_interface import (
     GenerateMessageRepositoryInterface,
-    GenerateMessageDto,
+    GenerateMessageRepositoryDto,
     GenerateMessageResult,
 )
 
@@ -12,7 +12,9 @@ class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
         self.client = AsyncOpenAI(api_key=self.OPENAI_API_KEY)
 
-    async def generate_message(self, dto: GenerateMessageDto) -> GenerateMessageResult:
+    async def generate_message(
+        self, dto: GenerateMessageRepositoryDto
+    ) -> GenerateMessageResult:
         user = str(dto.get("conversation_id"))
 
         response = await self.client.chat.completions.create(

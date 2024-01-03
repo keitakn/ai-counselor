@@ -3,8 +3,11 @@ from pydantic import BaseModel, field_validator, Field
 from http import HTTPStatus
 from domain.unique_id import is_uuid_format, generate_unique_id
 from domain.message import is_message
-from domain.repository.generate_message_repository_interface import GenerateMessageDto
 from log.logger import AppLogger, ErrorLogExtra
+from usecase.generate_message_use_case import (
+    GenerateMessageUseCase,
+    GenerateMessageUseCaseDto,
+)
 from infrastructure.repository.openai.openai_generate_message_repository import (
     OpenAiGenerateMessageRepository,
 )
@@ -68,22 +71,20 @@ class GenerateMessageController:
         try:
             repository = OpenAiGenerateMessageRepository()
 
-            generate_message_dto = GenerateMessageDto(
-                conversation_id=conversation_id,
-                message=self.request_body.message,
+            use_case = GenerateMessageUseCase(
+                GenerateMessageUseCaseDto(
+                    request_id=unique_id,
+                    message=self.request_body.message,
+                    generate_message_repository=repository,
+                )
             )
 
-            generate_message_result = await repository.generate_message(
-                generate_message_dto
-            )
+            use_case_result = await use_case.execute()
 
             return JSONResponse(
                 status_code=HTTPStatus.OK,
                 headers=response_headers,
-                content={
-                    "conversation_id": conversation_id,
-                    "message": generate_message_result.get("message"),
-                },
+                content=use_case_result,
             )
         except Exception as e:
             unexpected_error = GenerateMessageErrorResponseBody(
@@ -105,5 +106,5 @@ class GenerateMessageController:
             return JSONResponse(
                 status_code=HTTPStatus.OK,
                 headers=response_headers,
-                content=unexpected_error.model_dump(),
+                content=unexpected_error,
             )
