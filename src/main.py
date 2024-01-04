@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from presentation.router import health_checks
+from presentation.router import messages
 from pydantic_core import ValidationError
 
 app = FastAPI(
@@ -81,6 +82,7 @@ async def pydantic_validation_exception_handler(request: Request, exc: Validatio
 
 
 app.include_router(health_checks.router)
+app.include_router(messages.router)
 
 
 def start():
