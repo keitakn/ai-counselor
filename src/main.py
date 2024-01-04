@@ -1,4 +1,5 @@
 import uvicorn
+import os
 from fastapi import FastAPI, status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -6,6 +7,20 @@ from fastapi.exceptions import RequestValidationError
 from presentation.router import health_checks
 from presentation.router import messages
 from pydantic_core import ValidationError
+from linebot.v3.webhook import WebhookParser
+from linebot.v3.messaging import (
+    AsyncApiClient,
+    AsyncMessagingApi,
+    Configuration,
+    ReplyMessageRequest,
+    TextMessage,
+)
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from domain.unique_id import generate_unique_id
+from infrastructure.repository.openai.openai_generate_message_repository import (
+    OpenAiGenerateMessageRepository,
+)
 
 app = FastAPI(
     title="ai-counselor",
@@ -83,6 +98,66 @@ async def pydantic_validation_exception_handler(request: Request, exc: Validatio
 
 app.include_router(health_checks.router)
 app.include_router(messages.router)
+
+channel_secret = os.getenv("LINE_CHANNEL_SECRET")
+channel_access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+
+configuration = Configuration(access_token=channel_access_token)
+
+async_api_client = AsyncApiClient(configuration)
+line_bot_api = AsyncMessagingApi(async_api_client)
+parser = WebhookParser(channel_secret)
+
+
+@app.post("/v1/line/callback")
+async def handle_callback(request: Request):
+    signature = request.headers["X-Line-Signature"]
+
+    body = await request.body()
+    body = body.decode()
+
+    try:
+        events = parser.parse(body, signature)
+    except InvalidSignatureError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    for event in events:
+        if not isinstance(event, MessageEvent):
+            continue
+        if not isinstance(event.message, TextMessageContent):
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="申し訳ありません。テキストメッセージ以外は理解できません。")],
+                )
+            )
+            continue
+
+        generate_message_repository = OpenAiGenerateMessageRepository()
+
+        conversation_id = generate_unique_id()
+        if event.source is not None:
+            if event.source.type == "user" and isinstance(event.source.user_id, str):
+                conversation_id = event.source.user_id
+
+        generate_message_dto = {
+            "conversation_id": conversation_id,
+            "message": event.message.text,
+        }
+        generate_message_result = await generate_message_repository.generate_message(
+            generate_message_dto
+        )
+
+        response_message = generate_message_result.get("message")
+
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=response_message)],
+            )
+        )
+
+    return "OK"
 
 
 def start():
