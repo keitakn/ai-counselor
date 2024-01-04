@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from fastapi.security import HTTPBasicCredentials
 from pydantic import BaseModel, field_validator, Field
 from starlette.responses import JSONResponse
 from starlette.requests import Request
+from presentation.auth import basic_auth
 from presentation.controller.generate_message_controller import (
     GenerateMessageController,
     GenerateMessageRequestBody,
@@ -47,7 +49,9 @@ class GenerateMessageJsonResponse(BaseModel):
 
 @router.post("/v1/messages", response_model=GenerateMessageJsonResponse)
 async def generate_message(
-    request: Request, request_body: GenerateMessageRequestBody
+    request: Request,
+    request_body: GenerateMessageRequestBody,
+    credentials: HTTPBasicCredentials = Depends(basic_auth),
 ) -> JSONResponse:
     """
     このエンドポイントはAIが生成したメッセージを返します。
