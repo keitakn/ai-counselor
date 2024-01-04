@@ -1,4 +1,5 @@
 from fastapi.responses import JSONResponse
+from starlette.requests import Request
 from pydantic import BaseModel, field_validator, Field
 from http import HTTPStatus
 from domain.unique_id import is_uuid_format, generate_unique_id
@@ -8,6 +9,7 @@ from usecase.generate_message_use_case import (
     GenerateMessageUseCase,
     GenerateMessageUseCaseDto,
 )
+from presentation.request_id import extract_and_validate_request_id
 from infrastructure.repository.openai.openai_generate_message_repository import (
     OpenAiGenerateMessageRepository,
 )
@@ -52,28 +54,36 @@ class GenerateMessageErrorResponseBody(BaseModel):
 
 
 class GenerateMessageController:
-    def __init__(self, request_body: GenerateMessageRequestBody) -> None:
+    def __init__(
+        self, request: Request, request_body: GenerateMessageRequestBody
+    ) -> None:
         app_logger = AppLogger()
         self.logger = app_logger.logger
+        self.request = request
         self.request_body = request_body
 
     async def exec(self) -> JSONResponse:
-        unique_id = generate_unique_id()
+        request_id_or_error = extract_and_validate_request_id(self.request)
+        if isinstance(request_id_or_error, JSONResponse):
+            return request_id_or_error
 
-        conversation_id = unique_id
+        request_id = request_id_or_error
+
+        conversation_id = generate_unique_id()
         if self.request_body.conversation_id is not None and is_uuid_format(
             self.request_body.conversation_id
         ):
             conversation_id = self.request_body.conversation_id
 
-        response_headers = {"Ai-Counselor-Request-Id": unique_id}
+        response_headers = {"Ai-Counselor-Request-Id": request_id}
 
         try:
             repository = OpenAiGenerateMessageRepository()
 
             use_case = GenerateMessageUseCase(
                 GenerateMessageUseCaseDto(
-                    request_id=unique_id,
+                    request_id=request_id,
+                    conversation_id=conversation_id,
                     message=self.request_body.message,
                     generate_message_repository=repository,
                 )
@@ -93,7 +103,7 @@ class GenerateMessageController:
             )
 
             extra = ErrorLogExtra(
-                request_id=unique_id,
+                request_id=request_id,
                 conversation_id=conversation_id,
             )
 

@@ -37,7 +37,7 @@ class GenerateMessageUseCase:
     async def execute(
         self,
     ) -> GenerateMessageUseCaseResult:
-        conversation_id: str = self.dto["request_id"]
+        conversation_id: str = self.dto["conversation_id"]
 
         generate_message_repository_dto = GenerateMessageRepositoryDto(
             conversation_id=conversation_id,

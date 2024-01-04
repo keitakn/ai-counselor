@@ -60,6 +60,6 @@ async def generate_message(
     - **message**: エンドユーザーから送信されるメッセージの内容。
     """
 
-    controller = GenerateMessageController(request_body)
+    controller = GenerateMessageController(request, request_body)
 
     return await controller.exec()
