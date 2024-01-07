@@ -5,6 +5,7 @@ from domain.repository.generate_message_repository_interface import (
     GenerateMessageRepositoryDto,
     GenerateMessageResult,
 )
+from domain.prompt import create_prompt
 
 
 class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
@@ -18,12 +19,13 @@ class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
         user = str(dto.get("conversation_id"))
 
         response = await self.client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4-1106-preview",
             messages=[
+                {"role": "system", "content": create_prompt()},
                 {
                     "role": "user",
                     "content": dto.get("message"),
-                }
+                },
             ],
             temperature=0.7,
             user=user,
