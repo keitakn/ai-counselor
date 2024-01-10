@@ -10,6 +10,8 @@ services:
       BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD}
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+    depends_on:
+      - ai-counselor-mysql
     volumes:
       - ./.flake8:/.flake8
       - ./Makefile:/Makefile
@@ -19,3 +21,21 @@ services:
       - ./src:/src
       - ./tests:/tests
     command: uvicorn main:app --reload --host 0.0.0.0 --port 5000
+  ai-counselor-mysql:
+    build:
+      context: .
+      dockerfile: docker/mysql/Dockerfile
+    platform: linux/amd64
+    environment:
+      MYSQL_DATABASE: ai_counselor_test
+      MYSQL_USER: ai_counselor_test
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      TZ: UTC
+    ports:
+      - "33066:3306"
+    volumes:
+      - ai-counselor-test-data-store:/var/lib/mysql
+      - ./docker/mysql:/docker-entrypoint-initdb.d
+volumes:
+  ai-counselor-test-data-store:

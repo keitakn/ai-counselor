@@ -1,3 +1,7 @@
+FROM python:3.11.3-slim AS build
+
+RUN apt-get update && apt-get install -y ca-certificates
+
 FROM python:3.12.0-slim
 
 WORKDIR /src
@@ -13,5 +17,9 @@ RUN sed '/-e/d' requirements.lock > requirements.txt && \
 COPY ./src/ .
 
 EXPOSE 5000
+
+ENV SSL_CERT_PATH /etc/ssl/certs/ca-certificates.crt
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
