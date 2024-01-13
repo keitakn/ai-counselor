@@ -16,6 +16,9 @@ ci: test
 run:
 	rye run python src/main.py
 
+test-container:
+	docker compose exec ai-counselor bash -c "cd / && pytest -vv -s src/ tests/"
+
 ci-container:
 	docker compose exec ai-counselor bash -c "cd / && flake8 src/ tests/"
 	docker compose exec ai-counselor bash -c "cd / && black --check src/ tests/"
