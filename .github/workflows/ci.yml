@@ -32,8 +32,8 @@ jobs:
       - name: Docker set up
         run: |
           docker compose up --build -d
-      - name: Sleep for 3 seconds
-        run: sleep 3s
+      - name: Sleep for 6 seconds
+        run: sleep 6s
         shell: bash
       - name: run CI
         run: |
