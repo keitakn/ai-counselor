@@ -6,25 +6,14 @@ from domain.repository.generate_message_repository_interface import (
 from log.logger import AppLogger, SuccessLogExtra
 
 
-class GenerateMessageUseCaseDtoRequiredType(TypedDict):
+class GenerateMessageUseCaseDto(TypedDict):
     request_id: str
+    user_id: str
     message: str
     generate_message_repository: GenerateMessageRepositoryInterface
 
 
-class GenerateMessageUseCaseDtoOptionalType(TypedDict, total=False):
-    conversation_id: str
-
-
-class GenerateMessageUseCaseDto(
-    GenerateMessageUseCaseDtoRequiredType,
-    GenerateMessageUseCaseDtoOptionalType,
-):
-    pass
-
-
 class GenerateMessageUseCaseResult(TypedDict):
-    conversation_id: str
     message: str
 
 
@@ -37,10 +26,10 @@ class GenerateMessageUseCase:
     async def execute(
         self,
     ) -> GenerateMessageUseCaseResult:
-        conversation_id: str = self.dto["conversation_id"]
+        user_id: str = self.dto["user_id"]
 
         generate_message_repository_dto = GenerateMessageRepositoryDto(
-            conversation_id=conversation_id,
+            user_id=user_id,
             message=self.dto["message"],
         )
 
@@ -52,12 +41,11 @@ class GenerateMessageUseCase:
             "success",
             extra=SuccessLogExtra(
                 request_id=self.dto["request_id"],
-                conversation_id=conversation_id,
+                user_id=user_id,
                 ai_response_id=generate_message_result.get("ai_response_id"),
             ),
         )
 
         return GenerateMessageUseCaseResult(
-            conversation_id=conversation_id,
             message=generate_message_result.get("message"),
         )

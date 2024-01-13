@@ -2,7 +2,7 @@ from typing import Protocol, TypedDict
 
 
 class GenerateMessageRepositoryDto(TypedDict):
-    conversation_id: str
+    user_id: str
     message: str
 
 

@@ -17,13 +17,13 @@ class JsonFormatter(Formatter):
 
 class SuccessLogExtra(TypedDict):
     request_id: str
-    conversation_id: str
+    user_id: str
     ai_response_id: str
 
 
 class ErrorLogExtra(TypedDict):
     request_id: str
-    conversation_id: str
+    user_id: str
 
 
 LogLevel = Literal[0, 10, 20, 30, 40, 50]
