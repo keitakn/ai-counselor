@@ -45,6 +45,7 @@ pydantic-core==2.14.6
 pyflakes==3.1.0
 pymysql==1.1.0
 pytest==7.4.4
+pytest-asyncio==0.23.3
 python-dateutil==2.8.2
 requests==2.31.0
 six==1.16.0
