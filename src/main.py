@@ -17,9 +17,13 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
-from domain.unique_id import generate_unique_id
 from infrastructure.repository.openai.openai_generate_message_repository import (
     OpenAiGenerateMessageRepository,
+)
+from usecase.generate_message_use_case import (
+    GenerateMessageUseCaseDto,
+    GenerateMessageUseCaseResult,
+    GenerateMessageUseCase,
 )
 
 app = FastAPI(
@@ -135,27 +139,29 @@ async def handle_callback(request: Request):
 
         generate_message_repository = OpenAiGenerateMessageRepository()
 
-        conversation_id = generate_unique_id()
         if event.source is not None:
             if event.source.type == "user" and isinstance(event.source.user_id, str):
-                conversation_id = event.source.user_id
+                user_id = event.source.user_id
 
-        generate_message_dto = {
-            "conversation_id": conversation_id,
-            "message": event.message.text,
-        }
-        generate_message_result = await generate_message_repository.generate_message(
-            generate_message_dto
-        )
+                dto = GenerateMessageUseCaseDto(
+                    request_id=event.webhook_event_id,
+                    user_id=user_id,
+                    message=event.message.text,
+                    generate_message_repository=generate_message_repository,
+                )
 
-        response_message = generate_message_result.get("message")
+                use_case = GenerateMessageUseCase(dto)
 
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=response_message)],
-            )
-        )
+                use_case_result: GenerateMessageUseCaseResult = await use_case.execute()
+
+                response_message = use_case_result.get("message")
+
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=response_message)],
+                    )
+                )
 
     return "OK"
 
