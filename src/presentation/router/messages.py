@@ -9,17 +9,17 @@ from presentation.controller.generate_message_controller import (
     GenerateMessageRequestBody,
 )
 from domain.message import is_message
-from domain.unique_id import is_uuid_format
+from domain.user_id import is_user_id
 
 router = APIRouter()
 
 
 class GenerateMessageJsonResponse(BaseModel):
-    conversation_id: str = Field(
+    user_id: str = Field(
         default=None,
-        description="会話の一意なID。UUID形式である必要があります。",
+        description="ユーザーID。半角英数字と-_のみ利用可能です。",
         json_schema_extra={
-            "examples": ["f4f4d2ee-770f-4b6d-90c9-16cf918ae3be"],
+            "examples": ["Ua000xxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
         },
     )
     message: str = Field(
@@ -30,11 +30,11 @@ class GenerateMessageJsonResponse(BaseModel):
         },
     )
 
-    @field_validator("conversation_id")
+    @field_validator("user_id")
     @classmethod
-    def validate_conversation_id(cls, v: str) -> str:
-        if not is_uuid_format(v):
-            raise ValueError(f"'{v}' is not in UUID format")
+    def validate_user_id(cls, v: str) -> str:
+        if not is_user_id(v):
+            raise ValueError(f"'{v}' is not in user_id format")
         return v
 
     @field_validator("message")
@@ -56,7 +56,7 @@ async def generate_message(
     """
     このエンドポイントはAIが生成したメッセージを返します。
 
-    - **conversationId**: 会話の一意なID。
+    - **userId**: ユーザーの識別子。
     - **message**: エンドユーザーから送信されるメッセージの内容。
     """
 

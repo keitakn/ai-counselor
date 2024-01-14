@@ -2,7 +2,7 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from pydantic import BaseModel, field_validator, Field
 from http import HTTPStatus
-from domain.unique_id import is_uuid_format, generate_unique_id
+from domain.user_id import is_user_id
 from domain.message import is_message
 from log.logger import AppLogger, ErrorLogExtra
 from usecase.generate_message_use_case import (
@@ -10,17 +10,22 @@ from usecase.generate_message_use_case import (
     GenerateMessageUseCaseDto,
 )
 from presentation.request_id import extract_and_validate_request_id
+from infrastructure.db import create_db_connection
+from infrastructure.repository.aiomysql.aiomysql_db_handler import AiomysqlDbHandler
+from infrastructure.repository.aiomysql.aiomysql_conversation_history_repository import (
+    AiomysqlConversationHistoryRepository,
+)
 from infrastructure.repository.openai.openai_generate_message_repository import (
     OpenAiGenerateMessageRepository,
 )
 
 
 class GenerateMessageRequestBody(BaseModel):
-    conversation_id: str = Field(
+    user_id: str = Field(
         default=None,
-        description="会話の一意なID。UUID形式である必要があります。",
+        description="ユーザーID。半角英数字と-_のみ利用可能です。",
         json_schema_extra={
-            "examples": ["f4f4d2ee-770f-4b6d-90c9-16cf918ae3be"],
+            "examples": ["Ua000xxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
         },
     )
     message: str = Field(
@@ -31,11 +36,11 @@ class GenerateMessageRequestBody(BaseModel):
         },
     )
 
-    @field_validator("conversation_id")
+    @field_validator("user_id")
     @classmethod
-    def validate_conversation_id(cls, v: str) -> str:
-        if not is_uuid_format(v):
-            raise ValueError(f"'{v}' is not in UUID format")
+    def validate_user_id(cls, v: str) -> str:
+        if not is_user_id(v):
+            raise ValueError(f"'{v}' is not in user_id format")
         return v
 
     @field_validator("message")
@@ -69,23 +74,27 @@ class GenerateMessageController:
 
         request_id = request_id_or_error
 
-        conversation_id = generate_unique_id()
-        if self.request_body.conversation_id is not None and is_uuid_format(
-            self.request_body.conversation_id
-        ):
-            conversation_id = self.request_body.conversation_id
-
         response_headers = {"Ai-Counselor-Request-Id": request_id}
 
         try:
-            repository = OpenAiGenerateMessageRepository()
+            connection = await create_db_connection()
+
+            db_handler = AiomysqlDbHandler(connection)
+
+            generate_message_repository = OpenAiGenerateMessageRepository()
+
+            conversation_history_repository = AiomysqlConversationHistoryRepository(
+                connection
+            )
 
             use_case = GenerateMessageUseCase(
                 GenerateMessageUseCaseDto(
                     request_id=request_id,
-                    conversation_id=conversation_id,
+                    user_id=self.request_body.user_id,
                     message=self.request_body.message,
-                    generate_message_repository=repository,
+                    db_handler=db_handler,
+                    generate_message_repository=generate_message_repository,
+                    conversation_history_repository=conversation_history_repository,
                 )
             )
 
@@ -104,7 +113,7 @@ class GenerateMessageController:
 
             extra = ErrorLogExtra(
                 request_id=request_id,
-                conversation_id=conversation_id,
+                user_id=self.request_body.user_id,
             )
 
             self.logger.error(

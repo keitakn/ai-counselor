@@ -16,7 +16,7 @@ class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
     async def generate_message(
         self, dto: GenerateMessageRepositoryDto
     ) -> GenerateMessageResult:
-        user = str(dto.get("conversation_id"))
+        user_id = str(dto.get("user_id"))
 
         response = await self.client.chat.completions.create(
             model="gpt-4-1106-preview",
@@ -28,7 +28,7 @@ class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
                 },
             ],
             temperature=0.7,
-            user=user,
+            user=user_id,
         )
 
         ai_response_id = response.id

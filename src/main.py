@@ -17,10 +17,20 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
-from domain.unique_id import generate_unique_id
 from infrastructure.repository.openai.openai_generate_message_repository import (
     OpenAiGenerateMessageRepository,
 )
+from infrastructure.db import create_db_connection
+from infrastructure.repository.aiomysql.aiomysql_db_handler import AiomysqlDbHandler
+from infrastructure.repository.aiomysql.aiomysql_conversation_history_repository import (
+    AiomysqlConversationHistoryRepository,
+)
+from usecase.generate_message_use_case import (
+    GenerateMessageUseCaseDto,
+    GenerateMessageUseCaseResult,
+    GenerateMessageUseCase,
+)
+from log.logger import AppLogger, ErrorLogExtra
 
 app = FastAPI(
     title="ai-counselor",
@@ -133,29 +143,59 @@ async def handle_callback(request: Request):
             )
             continue
 
-        generate_message_repository = OpenAiGenerateMessageRepository()
-
-        conversation_id = generate_unique_id()
         if event.source is not None:
             if event.source.type == "user" and isinstance(event.source.user_id, str):
-                conversation_id = event.source.user_id
+                user_id = event.source.user_id
 
-        generate_message_dto = {
-            "conversation_id": conversation_id,
-            "message": event.message.text,
-        }
-        generate_message_result = await generate_message_repository.generate_message(
-            generate_message_dto
-        )
+                try:
+                    connection = await create_db_connection()
 
-        response_message = generate_message_result.get("message")
+                    db_handler = AiomysqlDbHandler(connection)
 
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=response_message)],
-            )
-        )
+                    generate_message_repository = OpenAiGenerateMessageRepository()
+
+                    conversation_history_repository = (
+                        AiomysqlConversationHistoryRepository(connection)
+                    )
+
+                    dto = GenerateMessageUseCaseDto(
+                        request_id=event.webhook_event_id,
+                        user_id=user_id,
+                        message=event.message.text,
+                        db_handler=db_handler,
+                        generate_message_repository=generate_message_repository,
+                        conversation_history_repository=conversation_history_repository,
+                    )
+
+                    use_case = GenerateMessageUseCase(dto)
+
+                    use_case_result: GenerateMessageUseCaseResult = (
+                        await use_case.execute()
+                    )
+
+                    response_message = use_case_result.get("message")
+
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=response_message)],
+                        )
+                    )
+                except Exception as e:
+                    app_logger = AppLogger()
+
+                    logger = app_logger.logger
+
+                    logger.error(
+                        f"An error occurred while line webhook process: {str(e)}",
+                        exc_info=True,
+                        extra=ErrorLogExtra(
+                            request_id=event.webhook_event_id,
+                            user_id=user_id,
+                        ),
+                    )
+
+                    raise HTTPException(status_code=500, detail="Internal Server Error")
 
     return "OK"
 
