@@ -10,6 +10,11 @@ from usecase.generate_message_use_case import (
     GenerateMessageUseCaseDto,
 )
 from presentation.request_id import extract_and_validate_request_id
+from infrastructure.db import create_db_connection
+from infrastructure.repository.aiomysql.aiomysql_db_handler import AiomysqlDbHandler
+from infrastructure.repository.aiomysql.aiomysql_conversation_history_repository import (
+    AiomysqlConversationHistoryRepository,
+)
 from infrastructure.repository.openai.openai_generate_message_repository import (
     OpenAiGenerateMessageRepository,
 )
@@ -72,14 +77,24 @@ class GenerateMessageController:
         response_headers = {"Ai-Counselor-Request-Id": request_id}
 
         try:
-            repository = OpenAiGenerateMessageRepository()
+            connection = await create_db_connection()
+
+            db_handler = AiomysqlDbHandler(connection)
+
+            generate_message_repository = OpenAiGenerateMessageRepository()
+
+            conversation_history_repository = AiomysqlConversationHistoryRepository(
+                connection
+            )
 
             use_case = GenerateMessageUseCase(
                 GenerateMessageUseCaseDto(
                     request_id=request_id,
                     user_id=self.request_body.user_id,
                     message=self.request_body.message,
-                    generate_message_repository=repository,
+                    db_handler=db_handler,
+                    generate_message_repository=generate_message_repository,
+                    conversation_history_repository=conversation_history_repository,
                 )
             )
 
