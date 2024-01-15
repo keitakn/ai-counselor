@@ -31,7 +31,6 @@ from usecase.generate_message_use_case import (
     GenerateMessageUseCase,
 )
 from log.logger import AppLogger, ErrorLogExtra
-from domain.message import get_max_token_limit
 
 app = FastAPI(
     title="ai-counselor",
@@ -158,7 +157,6 @@ async def handle_callback(request: Request):
                     conversation_history_repository = (
                         AiomysqlConversationHistoryRepository(
                             connection,
-                            get_max_token_limit(),
                         )
                     )
 

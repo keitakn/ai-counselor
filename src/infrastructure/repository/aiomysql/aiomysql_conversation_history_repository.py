@@ -1,6 +1,6 @@
 from typing import cast, List, Literal
 import aiomysql
-from domain.message import ChatMessage
+from domain.message import ChatMessage, get_max_token_limit
 from domain.prompt import create_prompt
 from domain.repository.conversation_history_repository_interface import (
     SaveConversationHistoryDto,
@@ -11,7 +11,11 @@ from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
 
 
 class AiomysqlConversationHistoryRepository(ConversationHistoryRepositoryInterface):
-    def __init__(self, connection: aiomysql.Connection, max_token_limit: int) -> None:
+    def __init__(
+        self,
+        connection: aiomysql.Connection,
+        max_token_limit: int = get_max_token_limit(),
+    ) -> None:
         self.connection = connection
         self.max_token_limit = max_token_limit
 
