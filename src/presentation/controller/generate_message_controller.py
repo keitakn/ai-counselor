@@ -84,7 +84,7 @@ class GenerateMessageController:
             generate_message_repository = OpenAiGenerateMessageRepository()
 
             conversation_history_repository = AiomysqlConversationHistoryRepository(
-                connection
+                connection,
             )
 
             use_case = GenerateMessageUseCase(

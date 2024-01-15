@@ -155,7 +155,9 @@ async def handle_callback(request: Request):
                     generate_message_repository = OpenAiGenerateMessageRepository()
 
                     conversation_history_repository = (
-                        AiomysqlConversationHistoryRepository(connection)
+                        AiomysqlConversationHistoryRepository(
+                            connection,
+                        )
                     )
 
                     dto = GenerateMessageUseCaseDto(

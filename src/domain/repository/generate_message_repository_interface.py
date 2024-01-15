@@ -1,9 +1,10 @@
-from typing import Protocol, TypedDict
+from typing import Protocol, TypedDict, List
+from domain.message import ChatMessage
 
 
 class GenerateMessageRepositoryDto(TypedDict):
     user_id: str
-    message: str
+    chat_messages: List[ChatMessage]
 
 
 class GenerateMessageResult(TypedDict):

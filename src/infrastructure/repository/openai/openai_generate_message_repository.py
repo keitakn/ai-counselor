@@ -1,11 +1,12 @@
 import os
+from typing import cast, List
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 from domain.repository.generate_message_repository_interface import (
     GenerateMessageRepositoryInterface,
     GenerateMessageRepositoryDto,
     GenerateMessageResult,
 )
-from domain.prompt import create_prompt
 
 
 class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
@@ -16,17 +17,12 @@ class OpenAiGenerateMessageRepository(GenerateMessageRepositoryInterface):
     async def generate_message(
         self, dto: GenerateMessageRepositoryDto
     ) -> GenerateMessageResult:
+        messages = cast(List[ChatCompletionMessageParam], dto.get("chat_messages"))
         user_id = str(dto.get("user_id"))
 
         response = await self.client.chat.completions.create(
             model="gpt-4-1106-preview",
-            messages=[
-                {"role": "system", "content": create_prompt()},
-                {
-                    "role": "user",
-                    "content": dto.get("message"),
-                },
-            ],
+            messages=messages,
             temperature=0.7,
             user=user_id,
         )

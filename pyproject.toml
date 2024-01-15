@@ -18,6 +18,7 @@ dependencies = [
     "aiomysql>=0.2.0",
     "asyncio>=3.4.3",
     "pytest-asyncio>=0.23.3",
+    "tiktoken>=0.5.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
