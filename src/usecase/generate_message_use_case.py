@@ -35,12 +35,21 @@ class GenerateMessageUseCase:
     ) -> GenerateMessageUseCaseResult:
         user_id: str = self.dto["user_id"]
 
-        generate_message_repository_dto = GenerateMessageRepositoryDto(
-            user_id=user_id,
-            message=self.dto["message"],
-        )
-
         try:
+            chat_messages = await self.dto[
+                "conversation_history_repository"
+            ].create_messages_with_conversation_history(
+                {
+                    "user_id": user_id,
+                    "request_message": self.dto["message"],
+                }
+            )
+
+            generate_message_repository_dto = GenerateMessageRepositoryDto(
+                user_id=user_id,
+                chat_messages=chat_messages,
+            )
+
             generate_message_result = await self.dto[
                 "generate_message_repository"
             ].generate_message(generate_message_repository_dto)

@@ -3,7 +3,7 @@ from starlette.requests import Request
 from pydantic import BaseModel, field_validator, Field
 from http import HTTPStatus
 from domain.user_id import is_user_id
-from domain.message import is_message
+from domain.message import is_message, get_max_token_limit
 from log.logger import AppLogger, ErrorLogExtra
 from usecase.generate_message_use_case import (
     GenerateMessageUseCase,
@@ -84,7 +84,8 @@ class GenerateMessageController:
             generate_message_repository = OpenAiGenerateMessageRepository()
 
             conversation_history_repository = AiomysqlConversationHistoryRepository(
-                connection
+                connection,
+                get_max_token_limit(),
             )
 
             use_case = GenerateMessageUseCase(
